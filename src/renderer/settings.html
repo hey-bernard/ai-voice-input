@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>AI 음성 입력 설정</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { display: flex; height: 100vh; }
+    nav { width: 180px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg-elev); padding: 16px 8px; display: flex; flex-direction: column; gap: 2px; }
+    nav button { text-align: left; border: 0; background: transparent; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    nav button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    main { flex: 1; overflow-y: auto; padding: 24px 28px 40px; }
+    section[role="tabpanel"] { max-width: 560px; }
+    section[hidden] { display: none; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    h2 { font-size: 15px; margin: 24px 0 8px; }
+    p.lead { color: var(--fg-muted); margin: 0 0 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .field label { font-weight: 600; }
+    .field .help { font-size: 12px; color: var(--fg-muted); }
+    .field input[type=text], .field input[type=password], .field select, .field textarea {
+      border: 1px solid var(--border); border-radius: 8px; background: var(--bg); padding: 7px 10px; min-height: 34px;
+    }
+    .inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .inline input { flex: 1; min-width: 200px; }
+    .card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; background: var(--bg-elev); }
+    .card h3 { margin: 0 0 4px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .card p { margin: 0 0 10px; color: var(--fg-muted); font-size: 13px; }
+    .pill { font-size: 12px; padding: 1px 8px; border-radius: 999px; font-weight: 600; }
+    .pill.ok { background: var(--ok-soft); color: var(--ok); }
+    .pill.bad { background: var(--err-soft); color: var(--err); }
+    .pill.warn { background: var(--warn-soft); color: var(--warn); }
+    .result { font-size: 13px; margin-top: 6px; }
+    .result.ok { color: var(--ok); }
+    .result.err { color: var(--err); }
+    .shortcut-input { font-family: inherit; text-align: center; cursor: pointer; min-width: 220px; }
+    .shortcut-input.recording { border-color: var(--accent) !important; background: var(--accent-soft) !important; }
+    .tone-item { display: flex; flex-direction: column; gap: 6px; }
+    .privacy li { margin-bottom: 6px; }
+    .checkbox { display: flex; gap: 8px; align-items: flex-start; }
+    .actions { display: flex; gap: 8px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <nav role="tablist" aria-label="설정 항목" aria-orientation="vertical" id="nav">
+    <button role="tab" data-tab="welcome">시작하기</button>
+    <button role="tab" data-tab="keys">API 키</button>
+    <button role="tab" data-tab="shortcuts">단축키</button>
+    <button role="tab" data-tab="tones">말투</button>
+    <button role="tab" data-tab="language">언어</button>
+    <button role="tab" data-tab="audio">마이크·입력</button>
+    <button role="tab" data-tab="data">데이터·개인정보</button>
+  </nav>
+  <main>
+    <section role="tabpanel" id="tab-welcome" aria-labelledby="h-welcome">
+      <h1 id="h-welcome">AI 음성 입력 시작하기</h1>
+      <p class="lead">어느 앱에서든 단축키를 누르고 말하면, 다듬어진 문장을 커서 위치에 넣어 드립니다. 시작하기 전에 아래 세 가지를 확인하세요.</p>
+
+      <div class="card">
+        <h3>1. 음성과 텍스트 처리 방식 <span id="privacyPill" class="pill warn">확인 필요</span></h3>
+        <ul class="privacy">
+          <li>말한 <strong>음성</strong>은 받아쓰기를 위해 OpenAI 음성 인식 API로 전송됩니다. 앱은 음성을 디스크에 저장하지 않고, 받아쓰기 세션이 끝나면 메모리에서도 지웁니다.</li>
+          <li>받아쓴 <strong>텍스트</strong>는 문장 다듬기를 위해 Anthropic(Claude) API로 전송됩니다. ‘원문 그대로’ 말투를 고르면 전송하지 않습니다.</li>
+          <li>각 서비스의 데이터 보관 기간은 사용 중인 API 계정의 정책을 따릅니다.</li>
+          <li>앱은 삽입하지 않은 문장을 비정상 종료에 대비해 저장 폴더<span id="welcomeDir"></span>에 임시로 저장하고, 삽입하거나 지우면 함께 지웁니다. 삽입한 텍스트는 기본으로 같은 폴더에 기록으로 남기며, ‘데이터·개인정보’에서 기록 보관을 끌 수 있습니다.</li>
+          <li>보관된 데이터는 언제든 ‘데이터·개인정보’에서 삭제할 수 있습니다.</li>
+        </ul>
+        <label class="checkbox"><input type="checkbox" id="privacyAccept" /> 위 내용을 확인했으며 이 방식으로 음성 입력을 사용하겠습니다.</label>
+      </div>
+
+      <div class="card">
+        <h3>2. 권한 <span id="permPill" class="pill warn">확인 중</span></h3>
+        <p>마이크는 음성을 듣는 데, <span id="axLabel">손쉬운 사용</span> 권한은 다른 앱의 커서 위치에 텍스트를 붙여넣는 데 필요합니다.</p>
+        <div id="permList"></div>
+      </div>
+
+      <div class="card">
+        <h3>3. API 키 <span id="keyPill" class="pill warn">확인 중</span></h3>
+        <p>음성 인식용 OpenAI 키와 문장 다듬기용 Anthropic 키를 입력하세요.</p>
+        <button class="btn" data-goto="keys">API 키 입력하기</button>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnFinish">완료하고 받아쓰기 창 열기</button>
+      </div>
+      <div id="finishResult" class="result" role="status"></div>
+    </section>
+
+    <section role="tabpanel" id="tab-keys" aria-labelledby="h-keys" hidden>
+      <h1 id="h-keys">API 키</h1>
+      <p class="lead">키는 운영체제 보안 저장소로 암호화해 이 컴퓨터에만 저장합니다.<span id="encNote"></span></p>
+      <div class="field">
+        <label for="keyOpenai">OpenAI API 키 (음성 인식)</label>
+        <div class="inline"><input type="password" id="keyOpenai" placeholder="sk-…" autocomplete="off" /><button class="btn" data-save-key="openai">저장</button><span id="stOpenai" class="pill"></span></div>
+      </div>
+      <div class="field">
+        <label for="keyAnthropic">Anthropic API 키 (문장 다듬기)</label>
+        <div class="inline"><input type="password" id="keyAnthropic" placeholder="sk-ant-…" autocomplete="off" /><button class="btn" data-save-key="anthropic">저장</button><span id="stAnthropic" class="pill"></span></div>
+      </div>
+      <h2>모델</h2>
+      <div class="field">
+        <label for="transcribeModel">음성 인식 모델</label>
+        <select id="transcribeModel" data-setting="transcribeModel">
+          <option value="gpt-transcribe">gpt-transcribe (다국어 자동 감지, 권장)</option>
+          <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+          <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe (빠르고 저렴)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="polishModel">문장 다듬기 모델</label>
+        <select id="polishModel" data-setting="polishModel">
+          <option value="claude-opus-5-5">Claude Opus 5.5 (권장)</option>
+          <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+          <option value="claude-haiku-5-5">Claude Haiku 5.5 (가장 빠름)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="polishEffort">다듬기 노력 수준</label>
+        <select id="polishEffort" data-setting="polishEffort">
+          <option value="low">낮음 (빠른 응답, 권장)</option>
+          <option value="medium">보통</option>
+          <option value="high">높음 (느리지만 더 꼼꼼함)</option>
+        </select>
+      </div>
+    </section>
+
+    <section role="tabpanel" id="tab-shortcuts" aria-labelledby="h-shortcuts" hidden>
+      <h1 id="h-shortcuts">단축키</h1>
+      <p class="lead">어느 앱을 쓰고 있든 동작하는 전역 단축키입니다. 입력란을 누르고 원하는 키 조합을 누르세요.</p>
+      <div class="field">
+        <label for="scToggle">받아쓰기 시작/종료</label>
+        <div class="inline"><input type="text" readonly class="shortcut-input" id="scToggle" data-shortcut="toggle" /><button class="btn" data-reset-shortcut="toggle">기본값</button></div>
+        <div class="result" id="scToggleResult" role="status"></div>
+      </div>
+      <div class="field">
+        <label for="scInsert">받아쓰기 종료 후 바로 삽입</label>
+        <div class="inline"><input type="text" readonly class="shortcut-input" id="scInsert" data-shortcut="insert" /><button class="btn" data-reset-shortcut="insert">기본값</button></div>
+        <div class="result" id="scInsertResult" role="status"></div>
+      </div>
+      <h2>받아쓰기 창 안에서</h2>
+      <p class="lead" id="localKeys"></p>
+    </section>
+
+    <section role="tabpanel" id="tab-tones" aria-labelledby="h-tones" hidden>
+      <h1 id="h-tones">말투</h1>
+      <p class="lead">기본 말투 외에 원하는 스타일을 직접 만들 수 있습니다. 예: “영어 이메일처럼 정중하게, 문장은 짧게”.</p>
+      <div id="customTones"></div>
+      <div class="card">
+        <h3>새 맞춤 스타일</h3>
+        <div class="field"><label for="newToneName">이름</label><input type="text" id="newToneName" maxlength="30" placeholder="예: 보고서체" /></div>
+        <div class="field"><label for="newToneInst">스타일 설명</label><textarea id="newToneInst" rows="3" maxlength="600" placeholder="예: 개조식 없이 짧은 문장, 결론을 먼저, ‘~함’ 체 사용"></textarea></div>
+        <button class="btn primary" id="btnAddTone">추가</button>
+        <div class="result" id="toneResult" role="status"></div>
+      </div>
+    </section>
+
+    <section role="tabpanel" id="tab-language" aria-labelledby="h-language" hidden>
+      <h1 id="h-language">언어</h1>
+      <p class="lead">자동 감지를 쓰면 한 세션 안에서 언어를 바꿔 말해도 각 발화를 해당 언어로 받아씁니다.</p>
+      <div class="field">
+        <label for="languageMode">인식 방식</label>
+        <select id="languageMode" data-setting="languageMode"></select>
+      </div>
+      <div class="field">
+        <label>자동 감지 후보 언어</label>
+        <span class="help">자주 쓰는 언어를 고르면 정확도가 올라갑니다. 자동 감지일 때만 사용합니다.</span>
+        <div id="langChecks" class="inline"></div>
+      </div>
+      <div class="field">
+        <label for="fallbackLanguage">대체 언어</label>
+        <span class="help">언어를 판별하지 못했거나 지원하지 않는 언어일 때 다시 인식할 기본 언어입니다.</span>
+        <select id="fallbackLanguage" data-setting="fallbackLanguage"></select>
+      </div>
+    </section>
+
+    <section role="tabpanel" id="tab-audio" aria-labelledby="h-audio" hidden>
+      <h1 id="h-audio">마이크·입력</h1>
+      <div class="field">
+        <label for="micDeviceId">마이크</label>
+        <select id="micDeviceId" data-setting="micDeviceId"></select>
+      </div>
+      <div class="field">
+        <label for="silenceMs">문장 묶음을 나누는 침묵 길이</label>
+        <span class="help">짧을수록 결과가 빨리 나오고, 길수록 한 묶음이 길어집니다.</span>
+        <select id="silenceMs" data-setting="silenceMs" data-number>
+          <option value="600">0.6초 (빠르게)</option>
+          <option value="900">0.9초 (기본)</option>
+          <option value="1400">1.4초</option>
+          <option value="2000">2초 (천천히 말할 때)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="insertSeparator">여러 문장 묶음을 삽입할 때 구분</label>
+        <select id="insertSeparator" data-setting="insertSeparator">
+          <option value="space">공백으로 이어 붙이기</option>
+          <option value="newline">줄바꿈으로 나누기</option>
+        </select>
+      </div>
+    </section>
+
+    <section role="tabpanel" id="tab-data" aria-labelledby="h-data" hidden>
+      <h1 id="h-data">데이터·개인정보</h1>
+      <p class="lead">이 앱이 이 컴퓨터에 보관하는 받아쓰기 데이터를 관리합니다. 외부 앱에 이미 삽입한 텍스트는 해당 앱에서 관리하세요.</p>
+      <div class="card">
+        <h3>저장 폴더</h3>
+        <p>받아쓰기 기록(날짜별 텍스트 파일, history.json)과 복구용 임시 세션을 이 폴더에 저장합니다.</p>
+        <div class="field">
+          <label for="dataDir">폴더 경로</label>
+          <div class="inline"><input type="text" id="dataDir" spellcheck="false" /><button class="btn" id="btnDirSave">적용</button></div>
+          <div class="inline"><button class="btn small" id="btnDirChoose">폴더 선택…</button><button class="btn small" id="btnDirOpen">폴더 열기</button><button class="btn small" id="btnDirDefault">기본값</button></div>
+          <div class="result" id="dirResult" role="status"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>보관 현황</h3>
+        <p id="dataSummary">확인 중…</p>
+        <label class="checkbox"><input type="checkbox" id="saveHistory" data-setting="saveHistory" data-bool /> 삽입한 텍스트 기록을 이 컴퓨터에 보관 (음성은 보관하지 않음)</label>
+      </div>
+      <div class="card">
+        <h3>보관된 데이터 삭제</h3>
+        <p>저장 폴더에서 이 앱이 만든 받아쓰기 기록, 날짜별 텍스트 파일, 복구용 임시 세션을 삭제합니다. 폴더 안의 다른 파일과 설정, API 키는 유지됩니다.</p>
+        <button class="btn danger" id="btnDelete">데이터 삭제</button>
+        <div class="result" id="deleteResult" role="status"></div>
+      </div>
+    </section>
+  </main>
+  <script src="settings.js"></script>
+</body>
+</html>

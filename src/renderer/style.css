@@ -1,0 +1,78 @@
+:root {
+  --bg: #ffffff;
+  --bg-elev: #f6f7f9;
+  --bg-sunk: #eef0f3;
+  --fg: #17191c;
+  --fg-muted: #5b616b;
+  --border: #dde1e6;
+  --accent: #3b5bdb;
+  --accent-fg: #ffffff;
+  --accent-soft: #e7ecfd;
+  --rec: #d6336c;
+  --rec-soft: #fdecf2;
+  --warn: #9a6100;
+  --warn-soft: #fff4dc;
+  --err: #c92a2a;
+  --err-soft: #ffeaea;
+  --ok: #2b8a3e;
+  --ok-soft: #e6f6ea;
+  --focus: #3b5bdb;
+  --radius: 12px;
+  --shadow: 0 12px 40px rgba(20, 24, 32, 0.22);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1d21;
+    --bg-elev: #24272c;
+    --bg-sunk: #15171a;
+    --fg: #eceef1;
+    --fg-muted: #a2a8b3;
+    --border: #363a41;
+    --accent: #7b93ff;
+    --accent-fg: #0e1220;
+    --accent-soft: #263055;
+    --rec: #ff6b9a;
+    --rec-soft: #3d1e2a;
+    --warn: #ffc65c;
+    --warn-soft: #3a2f17;
+    --err: #ff8787;
+    --err-soft: #3d1f1f;
+    --ok: #69db7c;
+    --ok-soft: #1c3322;
+    --focus: #9fb0ff;
+    --shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg);
+  background: var(--bg);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 32px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-elev); cursor: pointer; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--fg-muted); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.btn.danger { color: var(--err); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.small { min-height: 26px; padding: 0 8px; font-size: 12px; }
+.btn.icon { width: 32px; padding: 0; }
+kbd {
+  font-family: inherit; font-size: 11px; padding: 0 5px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--bg-sunk); color: var(--fg-muted);
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
